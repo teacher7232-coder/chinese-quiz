@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🐼 Xiang Chinese Quiz v0.6</title>
+<style>
+body{margin:0;background:#eafaf6;font-family:Arial}
+.wrap{max-width:760px;margin:24px auto;background:#fff;border-radius:18px;padding:24px;box-shadow:0 10px 24px rgba(0,0,0,.12)}
+h1{text-align:center;color:#18b28e}
+textarea{width:100%;height:170px}
+button{padding:11px 16px;border:none;border-radius:10px;cursor:pointer}
+#start{width:100%;background:#18b28e;color:#fff;font-size:18px}
+#quiz,#result{display:none}
+#bar{height:14px;background:#ddd;border-radius:99px;overflow:hidden;margin-bottom:12px}
+#fill{height:100%;width:0;background:#18b28e;transition:.35s}
+.choice{display:block;width:100%;margin:8px 0;padding:14px;background:#f6f6f6;font-size:16px}
+.choice:hover{background:#eef9f5}
+.correct{background:#9be8a6!important}
+.wrong{background:#ffb9b9!important}
+#status{height:26px;font-weight:bold;font-size:18px;color:#18b28e}
+ul{text-align:left}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="setup">
+<h1>🐼 Xiang Chinese Quiz v0.6</h1>
+<p>형식 : 중국어|병음 - 뜻</p>
+<textarea id="src">放心|fàngxīn - 안심하다
+焦虑|jiāolǜ - 불안하다
+开心|kāixīn - 기쁘다
+急躁|jízào - 성급하다
+努力|nǔlì - 노력하다
+犹豫|yóuyù - 망설이다</textarea><br><br>
+<button id="start" onclick="startQuiz()">퀴즈 시작</button>
+</div>
+
+<div class="wrap" id="quiz">
+<div id="bar"><div id="fill"></div></div>
+<div id="progress"></div>
+<h2 id="word"></h2>
+<div id="py" style="display:none"></div>
+<button onclick="togglePy()">👀 병음</button>
+<button onclick="speak()">🔊 발음</button>
+<div id="status"></div>
+<div id="choices"></div>
+</div>
+
+<div class="wrap" id="result">
+<h1 id="emoji"></h1>
+<h2 id="summary"></h2>
+<h3 id="percent"></h3>
+<hr>
+<h3>📒 틀린 단어</h3>
+<ul id="wrongList"></ul>
+<button onclick="retryWrong()">📖 틀린 단어만 다시 풀기</button>
+<button onclick="location.reload()">🔄 처음부터 다시</button>
+</div>
+
+<script>
+let all=[],pool=[],idx=0,score=0,current,wrong=[];
+function sh(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}
+function startQuiz(){
+all=src.value.trim().split("\n").map(v=>{let[l,r]=v.split("-");let[c,p]=l.split("|");return{c:c.trim(),p:p.trim(),k:r.trim()}});
+pool=[...all];sh(pool);
+setup.style.display="none";quiz.style.display="block";show();
+}
+function togglePy(){py.style.display=py.style.display=="block"?"none":"block";}
+function speak(){let u=new SpeechSynthesisUtterance(current.c);u.lang="zh-CN";speechSynthesis.speak(u);}
+function show(){
+if(idx>=pool.length){finish();return;}
+fill.style.width=(idx/pool.length*100)+"%";
+progress.textContent=`${idx+1} / ${pool.length}`;
+current=pool[idx];
+word.textContent=current.c;
+py.textContent=current.p;
+py.style.display="none";
+status.textContent="";
+let opts=[current.k,...all.filter(x=>x.k!=current.k).map(x=>x.k).sort(()=>Math.random()-0.5).slice(0,3)];
+sh(opts);
+choices.innerHTML="";
+opts.forEach(t=>{
+let b=document.createElement("button");
+b.className="choice";
+b.textContent=t;
+b.onclick=()=>{
+if(t===current.k){
+b.classList.add("correct");
+status.textContent="✅ 정답!";
+score++;
+setTimeout(()=>{idx++;show();},550);
+}else{
+b.disabled=true;
+b.classList.add("wrong");
+status.textContent="❌ 다시 선택해보세요.";
+if(!wrong.find(x=>x.c===current.c)) wrong.push(current);
+}
+};
+choices.appendChild(b);
+});
+}
+function finish(){
+quiz.style.display="none";
+result.style.display="block";
+let pct=Math.round(score/pool.length*100);
+emoji.textContent=pct>=90?"🏆🐼":"🐼";
+summary.textContent=`${pool.length}문제 중 ${score}문제 정답`;
+percent.textContent=`정답률 ${pct}%`;
+wrongList.innerHTML="";
+if(!wrong.length){wrongList.innerHTML="<li>Perfect! 🎉</li>";return;}
+wrong.forEach(w=>{
+let li=document.createElement("li");
+li.textContent=`${w.c} (${w.p}) - ${w.k}`;
+wrongList.appendChild(li);
+});
+}
+function retryWrong(){
+if(!wrong.length){alert("틀린 단어가 없습니다!");return;}
+pool=[...wrong];
+wrong=[];
+idx=0;
+score=0;
+result.style.display="none";
+quiz.style.display="block";
+show();
+}
+</script>
+</body>
+</html>
